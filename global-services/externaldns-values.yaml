@@ -1,0 +1,10 @@
+provider: cloudflare
+
+cloudflare:
+  secretName: cloudflare-secret
+  email: douglas.barahona@me.com
+  proxied: true
+
+interval: "1m"
+policy: upsert-only
+domainFilters: [ 'douglasbarahona.me' ]

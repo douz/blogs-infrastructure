@@ -27,3 +27,19 @@ kubectl --kubeconfig terraform/kubeconfig.yaml create namespace external-dns
 kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/cloudflare-secret.yaml
 helm --kubeconfig terraform/kubeconfig.yaml install external-dns bitnami/external-dns -f global-services/externaldns-values.yaml -n external-dns
 ```
+
+### Install MariaDB database for WordPress
+
+```bash
+kubectl --kubeconfig terraform/kubeconfig.yaml create namespace mariadb
+kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/mariadb-secret.yaml
+helm --kubeconfig terraform/kubeconfig.yaml install mariadb bitnami/mariadb -f global-services/mariadb-values.yaml -n mariadb --set global.storageClass=do-block-storage
+```
+
+### Install Redis
+
+```bash
+kubectl --kubeconfig terraform/kubeconfig.yaml create namespace redis-ns
+kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/redis-secret.yaml
+helm --kubeconfig terraform/kubeconfig.yaml install redis bitnami/redis -f global-services/redis-values.yaml -n redis-ns
+```

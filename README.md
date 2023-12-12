@@ -9,7 +9,7 @@ This repository uses Terraform version `1.6.5` and the `digitalocean/digitalocea
 ### Install ingress-nginx
 
 ```bash
-helm --kubeconfig terraform/kubeconfig.yaml install -n ingress-nginx --create-namespace --set controller.ingressClassResource.default=true ingress-nginx ingress-nginx/ingress-nginx
+helm --kubeconfig terraform/kubeconfig.yaml install -n ingress-nginx --create-namespace -f global-services/nginx-ingress-values.yaml --set controller.ingressClassResource.default=true ingress-nginx ingress-nginx/ingress-nginx
 ```
 
 ### Install cert-manager

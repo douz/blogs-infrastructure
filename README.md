@@ -2,9 +2,18 @@
 
 ## Working with Terraform
 
-This repository uses Terraform version `1.6.5` and the `digitalocean/digitalocean` provider version `>2.19.0`
+This repository uses Terraform version `1.7.4` and the `digitalocean/digitalocean` provider version `>2.34.1`
 
 ## Global Services
+
+### Install Sealed Secrets(kubeseal)
+
+Visit the [bitnami-labs/sealed-secrets](https://github.com/bitnami-labs/sealed-secrets?tab=readme-ov-file#usage) official Github repository to learn how to use it
+
+```bash
+helm --kubeconfig terraform/kubeconfig.yaml repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+helm --kubeconfig terraform/kubeconfig.yaml install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller sealed-secrets/sealed-secrets
+```
 
 ### Install ingress-nginx
 
@@ -24,7 +33,7 @@ kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/cert-man
 
 ```bash
 kubectl --kubeconfig terraform/kubeconfig.yaml create namespace external-dns
-kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/cloudflare-secret.yaml
+kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/cloudflare-sealedsecret.yaml
 helm --kubeconfig terraform/kubeconfig.yaml install external-dns bitnami/external-dns -f global-services/externaldns-values.yaml -n external-dns
 ```
 
@@ -32,7 +41,7 @@ helm --kubeconfig terraform/kubeconfig.yaml install external-dns bitnami/externa
 
 ```bash
 kubectl --kubeconfig terraform/kubeconfig.yaml create namespace mariadb
-kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/mariadb-secret.yaml
+kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/mariadb-sealedsecret.yaml
 helm --kubeconfig terraform/kubeconfig.yaml install mariadb bitnami/mariadb -f global-services/mariadb-values.yaml -n mariadb --set global.storageClass=do-block-storage
 ```
 
@@ -40,6 +49,6 @@ helm --kubeconfig terraform/kubeconfig.yaml install mariadb bitnami/mariadb -f g
 
 ```bash
 kubectl --kubeconfig terraform/kubeconfig.yaml create namespace redis-ns
-kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/redis-secret.yaml
+kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/redis-sealedsecret.yaml
 helm --kubeconfig terraform/kubeconfig.yaml install redis bitnami/redis -f global-services/redis-values.yaml -n redis-ns
 ```

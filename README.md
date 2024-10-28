@@ -2,7 +2,7 @@
 
 ## Working with Terraform
 
-This repository uses Terraform version `1.7.4` and the `digitalocean/digitalocean` provider version `>2.34.1`
+This repository uses Terraform version `1.9.8` and the `digitalocean/digitalocean` provider version `>2.34.1`
 
 ## Global Services
 

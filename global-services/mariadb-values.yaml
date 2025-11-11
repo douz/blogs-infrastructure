@@ -1,9 +1,19 @@
 image:
   registry: docker.io
-  repository: bitnami/mariadb
+  repository: bitnamilegacy/mariadb
   tag: 10.11.6-debian-11-r0
 
 auth:
   existingSecret: mariadb-secret
   database: douz_wp
   username: douz_wp
+
+# Reduced resource requirements for small cluster
+primary:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi     # Increased from 256Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi       # Increased from 512Mi

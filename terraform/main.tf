@@ -13,7 +13,7 @@ terraform {
 resource "digitalocean_kubernetes_cluster" "wp-blogs" {
   name    = "wp-blogs"
   region  = "nyc1"
-  version = "1.31.6-do.0"
+  version = "1.31.9-do.5"
 
   node_pool {
     name       = "wp-blogs-nodes"

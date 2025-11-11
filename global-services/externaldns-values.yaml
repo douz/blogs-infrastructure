@@ -1,3 +1,7 @@
+# Bitnami legacy image repository
+image:
+  repository: bitnamilegacy/external-dns
+
 provider: cloudflare
 
 cloudflare:
@@ -7,4 +11,4 @@ cloudflare:
 
 interval: "1m"
 policy: upsert-only
-domainFilters: [ 'douglasbarahona.me', 'devandops.show' ]
+domainFilters: [ 'douglasbarahona.me', 'devandops.show', 'brushbeauty.shop' ]

@@ -8,12 +8,12 @@ auth:
   database: douz_wp
   username: douz_wp
 
-# Reduced resource requirements for small cluster
+# Optimized resource requirements for 4-node cluster
 primary:
   resources:
     requests:
-      cpu: 200m
-      memory: 512Mi     # Increased from 256Mi
+      cpu: 300m
+      memory: 768Mi
     limits:
-      cpu: 400m
-      memory: 1Gi       # Increased from 512Mi
+      cpu: 600m
+      memory: 1.5Gi

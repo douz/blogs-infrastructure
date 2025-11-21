@@ -18,7 +18,7 @@ resource "digitalocean_kubernetes_cluster" "wp-blogs" {
   node_pool {
     name       = "wp-blogs-nodes"
     size       = "s-1vcpu-2gb"
-    node_count = 4
+    node_count = 3
   }
 }
 
@@ -31,6 +31,19 @@ resource "digitalocean_kubernetes_node_pool" "db_nodes" {
   taint {
     key    = "application"
     value  = "db"
+    effect = "NoSchedule"
+  }
+}
+
+# Node pool for brush-wp workloads
+resource "digitalocean_kubernetes_node_pool" "brush_wp_nodes" {
+  cluster_id = digitalocean_kubernetes_cluster.wp-blogs.id
+  name       = "brush-wp"
+  size       = "s-2vcpu-4gb"
+  node_count = 2
+  taint {
+    key    = "application"
+    value  = "brush-wp"
     effect = "NoSchedule"
   }
 }

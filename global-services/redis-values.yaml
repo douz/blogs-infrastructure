@@ -11,9 +11,20 @@ commonConfiguration: |-
   appendonly no
   # Disable RDB persistence, AOF persistence already enabled.
   save ""
+  # Eviction policy: evict least recently used key from all keys
+  maxmemory-policy allkeys-lru
+  # Set maxmemory to match pod limit
+  maxmemory 700mb
 master:
   disableCommands: []
   persistence:
     enabled: false
+  resources:
+    requests:
+      cpu: 200m
+      memory: 750Mi
+    limits:
+      cpu: 200m
+      memory: 750Mi
 replica:
   replicaCount: 1

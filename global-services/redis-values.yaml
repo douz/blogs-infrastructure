@@ -21,10 +21,10 @@ master:
     enabled: false
   resources:
     requests:
-      cpu: 300m
+      cpu: 200m
       memory: 750Mi
     limits:
-      cpu: 300m
+      cpu: 200m
       memory: 750Mi
 replica:
   replicaCount: 1

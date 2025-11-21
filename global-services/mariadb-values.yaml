@@ -12,8 +12,22 @@ auth:
 primary:
   resources:
     requests:
-      cpu: 300m
-      memory: 768Mi
+      cpu: 1000m      # Minimum: 1 vCPU
+      memory: 2Gi     # Minimum: 2GB RAM
     limits:
-      cpu: 600m
-      memory: 1.5Gi
+      cpu: 1500m      # Desired: 1.5 vCPU
+      memory: 3.5Gi   # Desired: 3.5GB RAM
+  tolerations:
+    - key: "application"
+      operator: "Equal"
+      value: "db"
+      effect: "NoSchedule"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: doks.digitalocean.com/node-pool
+                operator: In
+                values:
+                  - db-nodes

@@ -1,0 +1,107 @@
+---
+# Flux Kustomization for external-dns
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  interval: 10m
+  path: ./clusters/prod/infra/external-dns
+  prune: true
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: helm-repos
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: external-dns
+      namespace: external-dns
+---
+# HelmRelease for external-dns
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  interval: 30m
+  releaseName: external-dns
+  targetNamespace: external-dns
+  chart:
+    spec:
+      chart: external-dns
+      version: 1.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: external-dns
+        namespace: flux-system
+      interval: 12h
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Cloudflare provider configuration
+    provider:
+      name: cloudflare
+    
+    # Domain filters for all your domains
+    domainFilters:
+      - "douglasbarahona.me"
+      - "devandops.show"
+      - "brushbeauty.shop"
+    
+    # Synchronization policy
+    policy: sync
+    
+    # Source types to watch
+    sources:
+      - service
+      - ingress
+      - gateway-httproute
+      - gateway-grpcroute
+      - gateway-tlsroute
+    
+    # Unique identifier for this external-dns instance
+    txtOwnerId: "wp-sites-prod"
+    txtPrefix: "_external-dns."
+    
+    # Cloudflare-specific arguments
+    extraArgs:
+      - --cloudflare-proxied  # Enable Cloudflare proxy (orange cloud)
+      - --log-level=info
+      - --interval=1m
+    
+    # Cloudflare API token from secret
+    env:
+      - name: CF_API_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: cloudflare-api-token-external-dns
+            key: apiToken
+    
+    # Resource requests/limits
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+    
+    # Security context
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      fsGroup: 65534
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true

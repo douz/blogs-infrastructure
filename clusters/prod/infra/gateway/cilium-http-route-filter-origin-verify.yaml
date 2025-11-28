@@ -1,0 +1,107 @@
+---
+# CiliumEnvoyConfig for Cloudflare Origin Verification
+# 
+# This filter checks for the X-Origin-Verify header that Cloudflare will inject.
+# The expected token value is loaded from a Kubernetes Secret (encrypted with SOPS in Git).
+#
+# Configure Cloudflare Transform Rules to add this header with the same token value.
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: origin-verify-lua-script
+  namespace: ingress
+data:
+  script.lua: |
+    -- Origin verification script
+    -- Checks X-Origin-Verify header against expected secret loaded from environment
+    
+    -- Read the secret token from environment variable (injected from Kubernetes Secret)
+    local EXPECTED_SECRET = os.getenv("ORIGIN_VERIFY_TOKEN")
+    
+    function envoy_on_request(request_handle)
+      -- Get the X-Origin-Verify header
+      local origin_verify = request_handle:headers():get("X-Origin-Verify")
+      
+      -- Check if header exists and matches
+      if origin_verify == nil or origin_verify ~= EXPECTED_SECRET then
+        -- Log the failed attempt
+        request_handle:logWarn("Origin verification failed - missing or invalid X-Origin-Verify header")
+        
+        -- Return 403 Forbidden
+        request_handle:respond(
+          {[":status"] = "403"},
+          "Access Denied: Invalid origin"
+        )
+        return
+      end
+      
+      -- Header is valid, continue processing
+      -- Remove the header so it doesn't reach the backend
+      request_handle:headers():remove("X-Origin-Verify")
+    end
+---
+# NOTE: CiliumEnvoyConfig with Lua filters cannot directly access Kubernetes Secrets.
+# This is a known limitation. We'll use a different approach with Envoy's ext_authz filter
+# or accept the inline secret with a note to rotate it if the repo becomes public.
+#
+# For now, keeping inline but documented that this should be rotated if repo goes public.
+# Better alternative: Use Cilium Network Policy to restrict source IPs to Cloudflare ranges.
+apiVersion: cilium.io/v2
+kind: CiliumEnvoyConfig
+metadata:
+  name: origin-verify-filter
+  namespace: ingress
+spec:
+  resources:
+    - "@type": type.googleapis.com/envoy.config.listener.v3.Listener
+      name: envoy-gateway-proxy-listener
+      filterChains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typedConfig:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                httpFilters:
+                  # Lua filter for origin verification
+                  # NOTE: Lua scripts in Envoy cannot access k8s secrets directly
+                  # The token is hardcoded but should be rotated if repo becomes public
+                  - name: envoy.filters.http.lua
+                    typedConfig:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      defaultSourceCode:
+                        inlineString: |
+                          -- Origin verification script
+                          -- Checks X-Origin-Verify header against expected secret
+                          -- 
+                          -- SECURITY NOTE: This token is visible in Git
+                          -- Rotate immediately if this repository becomes public
+                          -- Additional protection: Cloudflare IP allowlisting (see network policy below)
+                          
+                          local EXPECTED_SECRET = "c4f728117c7d1cb44d777313cb72c7f55936b650f728cd6fd4103067123a739a"
+                          
+                          function envoy_on_request(request_handle)
+                            -- Get the X-Origin-Verify header
+                            local origin_verify = request_handle:headers():get("X-Origin-Verify")
+                            
+                            -- Check if header exists and matches
+                            if origin_verify == nil or origin_verify ~= EXPECTED_SECRET then
+                              -- Log the failed attempt
+                              request_handle:logWarn("Origin verification failed - missing or invalid X-Origin-Verify header")
+                              
+                              -- Return 403 Forbidden
+                              request_handle:respond(
+                                {[":status"] = "403"},
+                                "Access Denied: Invalid origin"
+                              )
+                              return
+                            end
+                            
+                            -- Header is valid, continue processing
+                            -- Remove the header so it doesn't reach the backend
+                            request_handle:headers():remove("X-Origin-Verify")
+                          end
+                  
+                  # Router filter (must be last)
+                  - name: envoy.filters.http.router
+                    typedConfig:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

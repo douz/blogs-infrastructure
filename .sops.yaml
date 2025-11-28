@@ -1,0 +1,21 @@
+---
+# SOPS configuration for encrypting secrets
+# 
+# Setup instructions:
+# 1. Install age: brew install age (macOS) or apt install age (Ubuntu)
+# 2. Generate age key: age-keygen -o age.key
+# 3. Extract public key: grep "public key:" age.key
+# 4. Update the 'age' field below with your public key
+# 5. Store age.key securely (e.g., password manager, encrypted vault)
+# 6. Add age.key to .gitignore
+#
+# Usage:
+# - Encrypt: sops --encrypt --in-place path/to/secret.yaml
+# - Decrypt: sops --decrypt path/to/secret.yaml
+# - Edit: sops path/to/secret.yaml
+
+creation_rules:
+  # Encrypt all secret files in clusters directory
+  - path_regex: clusters/.*/(secret|sealed-secret).*\.yaml$
+    encrypted_regex: ^(data|stringData)$
+    age: age14ajguq07xzyd8pfyr79x4gwhd7jx7adnmfgd3d8sljxpumnxrycs7mc267

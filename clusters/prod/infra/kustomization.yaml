@@ -2,10 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   # Helm Repositories (must be first)
-  - helm-repos/kustomization.yaml
+  - helm-repos/
   
   # Core infrastructure (order matters due to dependencies)
-  - cert-manager/kustomization.yaml
-  - external-dns/kustomization.yaml
-  - issuers/kustomization.yaml
-  - gateway/kustomization.yaml
+  - cert-manager/
+  - external-dns/
+  - issuers/
+  - gateway/

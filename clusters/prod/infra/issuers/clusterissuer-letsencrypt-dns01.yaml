@@ -1,9 +1,10 @@
+---
 # Flux Kustomization for issuers
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: issuers
-  namespace: cert-manager
+  namespace: flux-system
 spec:
   interval: 10m
   path: ./clusters/prod/infra/issuers
@@ -22,27 +23,17 @@ metadata:
   name: letsencrypt-dns01
 spec:
   acme:
-    # Let's Encrypt production server
-    # WARNING: Use staging for testing: https://acme-staging-v02.api.letsencrypt.org/directory
     server: https://acme-v02.api.letsencrypt.org/directory
-    
-    # Email for Let's Encrypt notifications
-    email: dbarahona@douglasbarahona.me
-    
-    # Secret to store the ACME account private key
+    email: douglas.barahona@me.com
     privateKeySecretRef:
       name: letsencrypt-dns01-account-key
-    
-    # DNS-01 challenge solver using Cloudflare
     solvers:
       - dns01:
           cloudflare:
-            # Use API token (recommended over API key)
             apiTokenSecretRef:
               name: cloudflare-api-token-dns01
               key: api-token
         selector:
-          # This solver will handle all your domains
           dnsZones:
             - "douglasbarahona.me"
             - "devandops.show"

@@ -1,0 +1,11 @@
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Provider
+metadata:
+  name: slack-prod
+  namespace: flux-system
+spec:
+  type: slack
+  channel: "#just-testing"
+  secretRef:
+    name: slack-webhook

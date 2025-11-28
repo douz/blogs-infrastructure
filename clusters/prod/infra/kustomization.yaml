@@ -9,3 +9,4 @@ resources:
   - external-dns/
   - issuers/
   - gateway/
+  - flux-notifications/

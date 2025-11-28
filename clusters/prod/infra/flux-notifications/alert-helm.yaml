@@ -1,0 +1,16 @@
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Alert
+metadata:
+  name: helm-prod-alerts
+  namespace: flux-system
+spec:
+  providerRef:
+    name: slack-prod
+  eventSeverity: info
+  eventSources:
+    - kind: HelmRelease
+      namespace: flux-system
+  inclusionList:
+    - "flux.toolkit.*.event.ReconciliationSucceeded"
+    - "flux.toolkit.*.event.ReconciliationFailed"

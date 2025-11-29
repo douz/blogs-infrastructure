@@ -27,11 +27,7 @@ spec:
         namespaces:
           from: All
       tls:
-        mode: Terminate
-        certificateRefs:
-          - name: wpsites-tls
-            kind: Secret
-            group: ""
+        mode: Passthrough
     - name: http
       protocol: HTTP
       port: 80

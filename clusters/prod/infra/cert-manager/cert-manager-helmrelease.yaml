@@ -25,42 +25,4 @@ spec:
     remediation:
       retries: 3
   values:
-    # Install CRDs with the chart
-    crds:
-      enabled: true
-      keep: true
-    
-    # Disable Prometheus integration (add later if needed)
-    prometheus:
-      enabled: false
-    
-    # Resource requests/limits for production
-    resources:
-      requests:
-        cpu: 10m
-        memory: 64Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
-    
-    webhook:
-      resources:
-        requests:
-          cpu: 10m
-          memory: 64Mi
-        limits:
-          cpu: 100m
-          memory: 128Mi
-    
-    cainjector:
-      resources:
-        requests:
-          cpu: 10m
-          memory: 64Mi
-        limits:
-          cpu: 100m
-          memory: 128Mi
-    
-    # Enable DNS-01 challenges
-    global:
-      logLevel: 2
+    # See cert-manager-values.yaml for configuration

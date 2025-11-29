@@ -1,0 +1,40 @@
+provider:
+  name: cloudflare
+domainFilters:
+  - "douglasbarahona.me"
+  - "devandops.show"
+  - "brushbeauty.shop"
+policy: sync
+sources:
+  - service
+  - ingress
+  - gateway-httproute
+  - gateway-grpcroute
+  - gateway-tlsroute
+txtOwnerId: "wp-sites-prod"
+txtPrefix: "_external-dns."
+extraArgs:
+  - --cloudflare-proxied
+  - --log-level=info
+  - --interval=1m
+env:
+  - name: CF_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-api-token-external-dns
+        key: apiToken
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 50m
+    memory: 64Mi
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true

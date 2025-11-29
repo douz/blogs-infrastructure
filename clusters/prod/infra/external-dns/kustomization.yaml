@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - external-dns-helmrelease.yaml
   - secret-cloudflare-api-token-external-dns.yaml
+  - external-dns-values.yaml

@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - jetstack-helmrepository.yaml
   - external-dns-helmrepository.yaml
+  - traefik-helmrepository.yaml

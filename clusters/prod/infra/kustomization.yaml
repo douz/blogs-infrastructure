@@ -7,6 +7,8 @@ resources:
   # Core infrastructure (order matters due to dependencies)
   - cert-manager/
   - external-dns/
-  - issuers/
   - gateway/
   - flux-notifications/
+  
+  # Infra-staged (CRD-dependent configs: apply after core infra is ready)
+  - ../infra-staged/issuers/clusterissuer-letsencrypt-dns01.yaml

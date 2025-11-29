@@ -26,6 +26,7 @@ controller:
       - 2a06:98c0::/29
       - 2c0f:f248::/32
 
+
 ## Traefik Middleware for Cloudflare Origin Verification
 ## This middleware checks for the X-Origin-Verify header
 http:
@@ -34,3 +35,10 @@ http:
       headers:
         customRequestHeaders:
           X-Origin-Verify: "${ORIGIN_VERIFY_TOKEN}"
+
+env:
+  - name: ORIGIN_VERIFY_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: origin-verify-token
+        key: token

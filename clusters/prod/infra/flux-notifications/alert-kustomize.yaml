@@ -1,5 +1,5 @@
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
   name: kustomize-prod-alerts
@@ -10,6 +10,7 @@ spec:
   eventSeverity: error
   eventSources:
     - kind: Kustomization
+      name: "*"
       namespace: flux-system
   inclusionList:
-    - "flux.toolkit.*.event.ReconciliationFailed"
+    - ".*ReconciliationFailed.*"

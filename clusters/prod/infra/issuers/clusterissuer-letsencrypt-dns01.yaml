@@ -1,20 +1,3 @@
-# Flux Kustomization for issuers (staged after cert-manager)
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: issuers
-  namespace: flux-system
-spec:
-  interval: 10m
-  path: ./clusters/prod/infra-staged/issuers
-  prune: true
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cert-manager
----
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

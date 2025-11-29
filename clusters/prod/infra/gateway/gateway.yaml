@@ -28,6 +28,10 @@ spec:
           from: All
       tls:
         mode: Terminate
+        certificateRefs:
+          - name: wpsites-tls
+            kind: Secret
+            group: ""
     - name: http
       protocol: HTTP
       port: 80

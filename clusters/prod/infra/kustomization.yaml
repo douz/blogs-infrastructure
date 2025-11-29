@@ -5,10 +5,10 @@ resources:
   - helm-repos/
   
   # Core infrastructure (order matters due to dependencies)
-  - cert-manager/
+  - cert-manager/cert-manager-flux-kustomization.yaml
   - external-dns/
   - gateway/
   - flux-notifications/
   
-  # Infra-staged (CRD-dependent configs: apply after core infra is ready)
-  - ../infra-staged/issuers/clusterissuer-letsencrypt-dns01.yaml
+  # CRD-dependent configs (apply after cert-manager is ready)
+  - issuers/issuers-flux-kustomization.yaml

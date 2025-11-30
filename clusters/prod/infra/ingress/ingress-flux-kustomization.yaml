@@ -13,6 +13,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: cert-manager
+      namespace: cert-manager
     - name: issuers
-    - name: traefik-official
-
+      namespace: cert-manager

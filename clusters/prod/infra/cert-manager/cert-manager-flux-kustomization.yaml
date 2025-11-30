@@ -12,7 +12,8 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
-    - name: helm-repos
+    - name: jetstack
+      repository: "https://charts.jetstack.io"
   healthChecks:
     - apiVersion: apps/v1
       kind: Deployment

@@ -12,7 +12,8 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
-    - name: helm-repos
+    - name: external-dns
+      repository: "https://kubernetes-sigs.github.io/external-dns/"
   healthChecks:
     - apiVersion: apps/v1
       kind: Deployment

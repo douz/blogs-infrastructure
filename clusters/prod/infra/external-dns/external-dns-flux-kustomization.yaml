@@ -13,7 +13,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: external-dns
-      repository: "https://kubernetes-sigs.github.io/external-dns/"
   healthChecks:
     - apiVersion: apps/v1
       kind: Deployment

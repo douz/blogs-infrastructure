@@ -13,4 +13,7 @@ spec:
     name: flux-system
   dependsOn:
     - name: cert-manager
+      repository: "https://charts.jetstack.io"
     - name: issuers
+    - name: traefik-official
+      repository: "https://traefik.github.io/charts"

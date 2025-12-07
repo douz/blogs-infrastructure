@@ -8,26 +8,11 @@ auth:
   database: douz_wp
   username: douz_wp
 
-# Optimized resource requirements for 4-node cluster
 primary:
   resources:
     requests:
-      cpu: 1000m      # Minimum: 1 vCPU
-      memory: 2Gi     # Minimum: 2GB RAM
+      cpu: 200m
+      memory: 512Mi
     limits:
-      cpu: 1500m      # Desired: 1.5 vCPU
-      memory: 3.5Gi   # Desired: 3.5GB RAM
-  tolerations:
-    - key: "application"
-      operator: "Equal"
-      value: "db"
-      effect: "NoSchedule"
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: doks.digitalocean.com/node-pool
-                operator: In
-                values:
-                  - db-nodes
+      cpu: 500m
+      memory: 1Gi

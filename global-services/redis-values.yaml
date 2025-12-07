@@ -14,7 +14,7 @@ commonConfiguration: |-
   # Eviction policy: evict least recently used key from all keys
   maxmemory-policy allkeys-lru
   # Set maxmemory to match pod limit
-  maxmemory 700mb
+  maxmemory 400mb
 master:
   disableCommands: []
   persistence:
@@ -22,9 +22,9 @@ master:
   resources:
     requests:
       cpu: 200m
-      memory: 750Mi
+      memory: 500Mi
     limits:
       cpu: 200m
-      memory: 750Mi
+      memory: 500Mi
 replica:
   replicaCount: 1

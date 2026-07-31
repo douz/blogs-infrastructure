@@ -17,6 +17,7 @@
 - Commit identity: `Douglas Barahona <douglas.barahona@me.com>`.
 - HCP Terraform organization/workspace: `dbarahona/wp-blogs`; workspace ID `ws-hVdckeh26QEoq6fU`; remote execution; auto-apply disabled.
 - Terraform target: exact `1.15.8` locally and in HCP Terraform; repository constraint `~> 1.15.8`.
+- Local Terraform version manager: `tfswitch` `v1.17.1`; use `tfswitch 1.15.8`, not manual binary installation.
 - Provider target: constraint `~> 2.95.0`; lock `digitalocean/digitalocean` `2.95.0`.
 - DOKS cluster: `wp-blogs`; ID `600aa401-e809-4179-97c6-dc9444fbaa07`; surge upgrades must remain enabled.
 - Required DOKS sequence: `1.33.6-do.0` → `1.33.12-do.3` → `1.34.10-do.0` → `1.35.7-do.0` → `1.36.3-do.0`.
@@ -33,94 +34,57 @@
 ### Task 1: Install and Select Terraform CLI 1.15.8
 
 **Files:**
-- Create: `/Users/dbarahona/.terraform.versions/terraform_1.15.8`
-- Modify: `/usr/local/bin/terraform` symlink
+- Create if absent through `tfswitch`: `/Users/dbarahona/.terraform.versions/terraform_1.15.8`
+- Modify through `tfswitch`: `/usr/local/bin/terraform` symlink
+- Modify through `tfswitch`: `/Users/dbarahona/.terraform.versions/RECENT`
 - Preserve: `/Users/dbarahona/.terraform.versions/terraform_1.1.9`
 
 **Interfaces:**
-- Consumes: HashiCorp's official Darwin AMD64 Terraform `1.15.8` archive and checksum list.
-- Produces: `terraform version` reporting `Terraform v1.15.8` while retaining the prior binary for exact rollback.
+- Consumes: installed `tfswitch` `v1.17.1`, which downloads and verifies an exact Terraform release when absent.
+- Produces: `terraform version` reporting `Terraform v1.15.8`, selected by `tfswitch`, while retaining `1.1.9` for exact rollback.
 
 - [ ] **Step 1: Present and obtain approval for the local-runtime mutation contract**
 
-The contract must name the two filesystem targets above, the current symlink target, the official download URLs, checksum validation, the retained `1.1.9` recovery binary, and this exact conditional restore:
+The contract must name the three `tfswitch`-managed filesystem targets above,
+the freshly observed current symlink target, automatic download and verification
+when `1.15.8` is absent, the retained `1.1.9` recovery binary, and this exact
+conditional restore:
 
 ```bash
-ln -sfn /Users/dbarahona/.terraform.versions/terraform_1.1.9 /usr/local/bin/terraform
+tfswitch 1.1.9
 terraform version
 ```
 
-- [ ] **Step 2: Reverify architecture, current runtime, target paths, and identity**
+- [ ] **Step 2: Reverify tfswitch, architecture, current runtime, and managed paths**
 
 Run:
 
 ```bash
+command -v tfswitch
+tfswitch --version
 uname -m
 file /Users/dbarahona/.terraform.versions/terraform_1.1.9
 ls -ld /Users/dbarahona/.terraform.versions /usr/local/bin
 ls -l /usr/local/bin/terraform
 terraform version
+sed -n '1,10p' /Users/dbarahona/.terraform.versions/RECENT
 ```
 
-Expected: `x86_64`, an x86_64 Mach-O binary, and the symlink targeting `terraform_1.1.9`.
+Expected: `/usr/local/bin/tfswitch`, `v1.17.1`, `x86_64`, and a known current
+Terraform selection. Record the exact symlink and `RECENT` values in the
+contract; stop if they change again before mutation.
 
-- [ ] **Step 3: Create a private download directory**
-
-Run:
+- [ ] **Step 3: Select exact Terraform 1.15.8 through tfswitch**
 
 ```bash
-test ! -e /private/tmp/blogs-terraform-1.15.8-20260730
-mkdir -m 700 /private/tmp/blogs-terraform-1.15.8-20260730
+tfswitch 1.15.8
 ```
 
-Expected: the first command succeeds and the directory is created with mode `0700`.
+Expected: `tfswitch` downloads and verifies `1.15.8` if absent, stores it under
+`.terraform.versions`, updates `RECENT`, and selects it through the managed
+symlink. Stop on any download, checksum, signature, or selection error.
 
-- [ ] **Step 4: Download Terraform and the official checksum list**
-
-Run:
-
-```bash
-curl -fsSLo /private/tmp/blogs-terraform-1.15.8-20260730/terraform_1.15.8_darwin_amd64.zip https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_darwin_amd64.zip
-curl -fsSLo /private/tmp/blogs-terraform-1.15.8-20260730/terraform_1.15.8_SHA256SUMS https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_SHA256SUMS
-```
-
-Expected: both files exist and are non-empty.
-
-- [ ] **Step 5: Verify the archive checksum before extracting**
-
-Run:
-
-```bash
-cd /private/tmp/blogs-terraform-1.15.8-20260730
-awk '$2 == "terraform_1.15.8_darwin_amd64.zip" {print}' terraform_1.15.8_SHA256SUMS | shasum -a 256 -c -
-```
-
-Expected: `terraform_1.15.8_darwin_amd64.zip: OK`. Stop without installing on any other result.
-
-- [ ] **Step 6: Extract and verify the downloaded binary**
-
-Run:
-
-```bash
-unzip -q /private/tmp/blogs-terraform-1.15.8-20260730/terraform_1.15.8_darwin_amd64.zip -d /private/tmp/blogs-terraform-1.15.8-20260730/extracted
-/private/tmp/blogs-terraform-1.15.8-20260730/extracted/terraform version
-```
-
-Expected: `Terraform v1.15.8`.
-
-- [ ] **Step 7: Install the side-by-side binary and atomically select it**
-
-Run:
-
-```bash
-test ! -e /Users/dbarahona/.terraform.versions/terraform_1.15.8
-install -m 0755 /private/tmp/blogs-terraform-1.15.8-20260730/extracted/terraform /Users/dbarahona/.terraform.versions/terraform_1.15.8
-ln -sfn /Users/dbarahona/.terraform.versions/terraform_1.15.8 /usr/local/bin/terraform
-```
-
-Expected: no output and exit status `0`.
-
-- [ ] **Step 8: Verify the selected runtime and retained recovery binary**
+- [ ] **Step 4: Verify the selected runtime and retained recovery binary**
 
 Run:
 
@@ -128,9 +92,13 @@ Run:
 ls -l /usr/local/bin/terraform
 terraform version
 /Users/dbarahona/.terraform.versions/terraform_1.1.9 version
+tfswitch --match-version-requirement '~> 1.15.8' 1.15.8
+sed -n '1,10p' /Users/dbarahona/.terraform.versions/RECENT
 ```
 
-Expected: the symlink targets `terraform_1.15.8`, the selected runtime reports `1.15.8`, and the retained runtime reports `1.1.9`.
+Expected: the symlink targets `terraform_1.15.8`, the selected runtime reports
+`1.15.8`, the retained runtime reports `1.1.9`, the requirement check exits
+`0`, and `RECENT` records `1.15.8`.
 
 ### Task 2: Pin Terraform and the DigitalOcean Provider
 

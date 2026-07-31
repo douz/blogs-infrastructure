@@ -11,6 +11,7 @@ The verified starting state on 2026-07-30 is:
 
 - Repository base: `origin/main` at `6b7f9bfe6dcc2d13a8609c55d65aa32249219646`
 - Local Terraform CLI: `1.1.9`
+- Terraform version manager: `tfswitch` `v1.17.1`
 - HCP Terraform workspace constraint: `~>1.7.0`
 - Repository documentation target: Terraform `1.9.8`
 - DigitalOcean provider constraint and lock: `~> 2.47.0`, locked to `2.47.0`
@@ -90,9 +91,12 @@ The implementation changes are limited to:
 - `README.md`: align documented Terraform and provider versions with the pinned
   configuration.
 
-Install Terraform `1.15.8` alongside the existing local `1.1.9` binary, verify
-the official checksum, and then repoint `/usr/local/bin/terraform` to the new
-binary. The existing binary remains the local rollback artifact.
+Use the existing `tfswitch` `v1.17.1` installation to download, verify, and
+select exact Terraform `1.15.8` with `tfswitch 1.15.8`. `tfswitch` stores
+versions under `/Users/dbarahona/.terraform.versions` and manages
+`/usr/local/bin/terraform`. Existing versions remain available; if runtime
+selection fails before any cloud mutation, restore the pre-task runtime through
+the same manager with `tfswitch 1.1.9`.
 
 Change the HCP Terraform workspace version setting from `~>1.7.0` to exact
 `1.15.8`. Preserve the prior value so the workspace setting can be restored if
@@ -160,9 +164,10 @@ disk data is not preserved, but it is not used for the MariaDB database.
 ## Failure Handling and Recovery
 
 Repository edits are recoverable from the verified task-branch base and commit
-history. The Terraform `1.1.9` binary remains installed so the local symlink can
-be restored. The previous HCP Terraform workspace constraint `~>1.7.0` is the
-rollback value for runtime-setting failures that occur before a DOKS apply.
+history. The Terraform `1.1.9` binary remains installed and can be reselected
+with `tfswitch 1.1.9`. The previous HCP Terraform workspace constraint
+`~>1.7.0` is the rollback value for runtime-setting failures that occur before
+a DOKS apply.
 
 A DOKS version upgrade cannot be downgraded. If an apply is partial or its
 result is unknown:

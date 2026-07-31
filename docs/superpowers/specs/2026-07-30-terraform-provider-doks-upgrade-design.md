@@ -1,4 +1,4 @@
-# Terraform, DigitalOcean Provider, and DOKS Upgrade Design
+# Terraform, Provider, and DOKS Upgrade Design
 
 ## Context
 
@@ -15,6 +15,7 @@ The verified starting state on 2026-07-30 is:
 - HCP Terraform workspace constraint: `~>1.7.0`
 - Repository documentation target: Terraform `1.9.8`
 - DigitalOcean provider constraint and lock: `~> 2.47.0`, locked to `2.47.0`
+- Local provider lock: `2.6.1`
 - Production cluster: `wp-blogs` (`600aa401-e809-4179-97c6-dc9444fbaa07`)
 - Region and account: `nyc1`, DigitalOcean team `My Team`
 - Current DOKS version: `1.33.6-do.0`
@@ -25,8 +26,8 @@ The verified starting state on 2026-07-30 is:
 - MariaDB volume: `pvc-59a68844-4137-4c30-85e0-5e543a8c62d0`
 
 Terraform `1.15.8` is the latest stable Terraform release and
-`digitalocean/digitalocean` `2.95.0` is the latest stable provider release at
-the time of this design.
+`digitalocean/digitalocean` `2.95.0` and `hashicorp/local` `2.9.0` are the
+latest stable provider releases at the time of this design.
 
 ## Goals
 
@@ -34,12 +35,14 @@ the time of this design.
    Terraform `1.15.8`.
 2. Pin the DigitalOcean provider constraint to `~> 2.95.0` and lock provider
    version `2.95.0`.
-3. Upgrade the production DOKS cluster through exact, DigitalOcean-supported
+3. Pin the Local provider constraint to `~> 2.9.0` and lock provider version
+   `2.9.0`.
+4. Upgrade the production DOKS cluster through exact, DigitalOcean-supported
    version hops until it reaches `1.36.3-do.0`, provided that version remains
    the latest stable target during execution.
-4. Preserve the MariaDB DigitalOcean block volume and verify its identity,
+5. Preserve the MariaDB DigitalOcean block volume and verify its identity,
    binding, attachment, and workload health around every live upgrade.
-5. Deliver the final configuration through a feature branch and pull request
+6. Deliver the final configuration through a feature branch and pull request
    without automatically merging it.
 
 ## Non-goals
@@ -82,10 +85,11 @@ Work on `feature/upgrade-terraform-provider-doks`, created from the current
 
 The implementation changes are limited to:
 
-- `terraform/versions.tf`: add `required_version = "~> 1.15.8"` and change the
-  provider constraint to `~> 2.95.0`.
+- `terraform/versions.tf`: add `required_version = "~> 1.15.8"`, change the
+  DigitalOcean provider constraint to `~> 2.95.0`, and explicitly constrain
+  the Local provider to `~> 2.9.0`.
 - `terraform/.terraform.lock.hcl`: regenerate with Terraform `1.15.8` and lock
-  `digitalocean/digitalocean` `2.95.0`.
+  `digitalocean/digitalocean` `2.95.0` and `hashicorp/local` `2.9.0`.
 - `terraform/main.tf`: change only the DOKS `version` value for each exact,
   supported upgrade hop.
 - `README.md`: align documented Terraform and provider versions with the pinned
@@ -111,7 +115,7 @@ For the provider/runtime unit:
 
 1. Reverify the repository, revision, CLI version, HCP Terraform workspace,
    backend, lockfile, DigitalOcean account, and cluster identity.
-2. Update the Terraform and provider pins and regenerate the lockfile.
+2. Update the Terraform and both provider pins and regenerate the lockfile.
 3. Run formatting and static validation.
 4. Create a private saved Terraform plan.
 5. Inspect its resource actions without exposing sensitive values.
@@ -214,6 +218,8 @@ checks. Do not merge the pull request without separate user authorization.
   <https://developer.hashicorp.com/terraform/install>
 - DigitalOcean provider release `v2.95.0`:
   <https://github.com/digitalocean/terraform-provider-digitalocean/releases/tag/v2.95.0>
+- HashiCorp Local provider release `v2.9.0`:
+  <https://github.com/hashicorp/terraform-provider-local/releases/tag/v2.9.0>
 - DigitalOcean DOKS upgrade process:
   <https://docs.digitalocean.com/products/kubernetes/how-to/upgrade-cluster/>
 - DigitalOcean persistent volume behavior:

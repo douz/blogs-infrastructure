@@ -1,12 +1,12 @@
-# Terraform, DigitalOcean Provider, and DOKS Upgrade Implementation Plan
+# Terraform, Provider, and DOKS Upgrade Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Production mutations must be performed serially by the primary T.A.R.S. agent; subagents remain read-only and advisory.
 
-**Goal:** Pin Terraform `1.15.8` and `digitalocean/digitalocean` `2.95.0`, then upgrade the production DOKS cluster through exact supported hops to `1.36.3-do.0` without deleting or replacing the MariaDB DigitalOcean volume.
+**Goal:** Pin Terraform `1.15.8`, `digitalocean/digitalocean` `2.95.0`, and `hashicorp/local` `2.9.0`, then upgrade the production DOKS cluster through exact supported hops to `1.36.3-do.0` without deleting or replacing the MariaDB DigitalOcean volume.
 
 **Architecture:** Modernize the local and HCP Terraform runtimes first, update and validate the provider lock independently, and then handle every Kubernetes version as its own committed configuration revision and saved Terraform plan. Each live hop is blocked unless DigitalOcean offers the exact target and the plan contains only an in-place DOKS update plus an allowed ephemeral `local_file` action.
 
-**Tech Stack:** Terraform CLI and HCP Terraform, `digitalocean/digitalocean`, DigitalOcean Kubernetes, `doctl`, `kubectl`, Git, GitHub CLI, Gitleaks.
+**Tech Stack:** Terraform CLI and HCP Terraform, `digitalocean/digitalocean`, `hashicorp/local`, DigitalOcean Kubernetes, `doctl`, `kubectl`, Git, GitHub CLI, Gitleaks.
 
 ## Global Constraints
 
@@ -18,7 +18,8 @@
 - HCP Terraform organization/workspace: `dbarahona/wp-blogs`; workspace ID `ws-hVdckeh26QEoq6fU`; remote execution; auto-apply disabled.
 - Terraform target: exact `1.15.8` locally and in HCP Terraform; repository constraint `~> 1.15.8`.
 - Local Terraform version manager: `tfswitch` `v1.17.1`; use `tfswitch 1.15.8`, not manual binary installation.
-- Provider target: constraint `~> 2.95.0`; lock `digitalocean/digitalocean` `2.95.0`.
+- Provider targets: constrain and lock `digitalocean/digitalocean` `2.95.0` and
+  `hashicorp/local` `2.9.0`.
 - DOKS cluster: `wp-blogs`; ID `600aa401-e809-4179-97c6-dc9444fbaa07`; surge upgrades must remain enabled.
 - Required DOKS sequence: `1.33.6-do.0` → `1.33.12-do.3` → `1.34.10-do.0` → `1.35.7-do.0` → `1.36.3-do.0`.
 - Every target after `1.33.12-do.3` is conditional on `doctl kubernetes cluster get-upgrades` returning that exact version. Stop on any mismatch.
@@ -98,7 +99,7 @@ sed -n '1,10p' /Users/dbarahona/.terraform.versions/RECENT
 Expected: the symlink targets `terraform_1.15.8`, the selected runtime reports
 `1.15.8`, the retained runtime reports `1.1.9`, and `RECENT` records `1.15.8`.
 
-### Task 2: Pin Terraform and the DigitalOcean Provider
+### Task 2: Pin Terraform and the Providers
 
 **Files:**
 - Modify: `terraform/versions.tf`
@@ -107,11 +108,12 @@ Expected: the symlink targets `terraform_1.15.8`, the selected runtime reports
 
 **Interfaces:**
 - Consumes: the selected Terraform `1.15.8` CLI and existing HCP Terraform backend configuration.
-- Produces: a deterministic Terraform `1.15.x` configuration and provider lock at `digitalocean/digitalocean` `2.95.0`.
+- Produces: a deterministic Terraform `1.15.x` configuration and provider lock
+  at `digitalocean/digitalocean` `2.95.0` and `hashicorp/local` `2.9.0`.
 
 - [ ] **Step 1: Present and obtain approval for the repository configuration mutation contract**
 
-The contract must list the three files above, `5112730eab6cac51ebc377849336505d802a6c8f` as the Git recovery point, `terraform init -upgrade -input=false` as the lockfile mutation, and commit message `chore: update Terraform and DigitalOcean provider`.
+The contract must list the three files above, `5112730eab6cac51ebc377849336505d802a6c8f` as the Git recovery point, `terraform init -upgrade -input=false` as the lockfile mutation, and commit message `chore: update Terraform providers`.
 
 - [ ] **Step 2: Reverify repository target, clean branch, origin, and identity**
 
@@ -142,6 +144,11 @@ terraform {
       source  = "digitalocean/digitalocean"
       version = "~> 2.95.0"
     }
+
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.9.0"
+    }
   }
 }
 ```
@@ -151,7 +158,7 @@ terraform {
 Replace README line 5 with:
 
 ```markdown
-This repository uses Terraform version `1.15.8` and the `digitalocean/digitalocean` provider version `2.95.0`.
+This repository uses Terraform version `1.15.8`, the `digitalocean/digitalocean` provider version `~> 2.95.0`, and the `hashicorp/local` provider version `~> 2.9.0`.
 ```
 
 - [ ] **Step 5: Regenerate the provider lock using the selected runtime**
@@ -162,7 +169,9 @@ Run:
 terraform -chdir=terraform init -upgrade -input=false
 ```
 
-Expected: successful HCP Terraform initialization and installation of `digitalocean/digitalocean v2.95.0`; no plan or apply is started.
+Expected: successful HCP Terraform initialization and installation of
+`digitalocean/digitalocean v2.95.0` and `hashicorp/local v2.9.0`; no plan or
+apply is started.
 
 - [ ] **Step 6: Verify formatting, configuration, and provider selection**
 
@@ -175,7 +184,9 @@ terraform -chdir=terraform providers
 sed -n '1,120p' terraform/.terraform.lock.hcl
 ```
 
-Expected: formatting and validation pass; provider output and lockfile show `digitalocean/digitalocean` `2.95.0` with constraint `~> 2.95.0`.
+Expected: formatting and validation pass; provider output and lockfile show
+`digitalocean/digitalocean` `2.95.0` and `hashicorp/local` `2.9.0` with their
+approved constraints.
 
 - [ ] **Step 7: Inspect, secret-scan, and commit the repository change**
 
@@ -191,12 +202,12 @@ gitleaks git --staged --redact --no-banner --exit-code 1 .
 git remote -v
 git config --get user.name
 git config --get user.email
-git commit -m "chore: update Terraform and DigitalOcean provider"
+git commit -m "chore: update Terraform providers"
 ```
 
 Expected: no secret findings and a commit containing only the three named files.
 
-### Task 3: Pin the HCP Terraform Runtime and Prove the Provider Upgrade Is a No-op
+### Task 3: Pin the HCP Terraform Runtime and Prove the Provider Upgrades Are Infrastructure-Neutral
 
 **Files:**
 - Create temporarily: `/private/tmp/blogs-infrastructure-tfplans-20260730/provider-runtime.tfplan`
@@ -204,7 +215,9 @@ Expected: no secret findings and a commit containing only the three named files.
 
 **Interfaces:**
 - Consumes: repository Terraform/provider pins and the existing HCP Terraform credential.
-- Produces: remote runs using exact Terraform `1.15.8` and a saved plan proving the provider/runtime update changes no infrastructure.
+- Produces: remote runs using exact Terraform `1.15.8` and a saved plan proving
+  the provider/runtime update changes no cloud infrastructure; the HCP remote
+  runner may propose recreating its ephemeral `local_file`.
 
 - [ ] **Step 1: Present and obtain approval for the HCP workspace and saved-plan mutation contract**
 
@@ -838,9 +851,12 @@ test ! -e /private/tmp/blogs-infrastructure-tfplans-20260730/doks-1.36.3-do.0.tf
 - Consumes: healthy production cluster at `1.36.3-do.0` and complete local task-branch history.
 - Produces: a pushed feature branch and an unmerged pull request with final validation evidence.
 
-- [ ] **Step 1: Present and obtain approval for the final no-op plan mutation**
+- [ ] **Step 1: Present and obtain approval for the final convergence-plan mutation**
 
-The contract must authorize one final HCP Terraform plan only, name the exact repository revision and production workspace, require no changes as the success condition, and state that no apply is authorized.
+The contract must authorize one final saved HCP Terraform plan only, name the
+exact repository revision and production workspace, require every cloud
+resource to be `no-op`, allow only the HCP runner's ephemeral `local_file`
+creation, and state that no apply is authorized.
 
 - [ ] **Step 2: Verify final infrastructure and configuration convergence**
 
@@ -849,10 +865,15 @@ Run:
 ```bash
 terraform -chdir=terraform fmt -check -recursive
 terraform -chdir=terraform validate
-terraform -chdir=terraform plan -input=false -detailed-exitcode
+terraform -chdir=terraform plan -out=/private/tmp/blogs-infrastructure-tfplans-20260730/final-drift.tfplan
+terraform -chdir=terraform show -json /private/tmp/blogs-infrastructure-tfplans-20260730/final-drift.tfplan | jq '{terraform_version,resource_actions:[.resource_changes[] | {address,type,actions:.change.actions,replace_paths:.change.replace_paths}]}'
+rm -f /private/tmp/blogs-infrastructure-tfplans-20260730/final-drift.tfplan
+test ! -e /private/tmp/blogs-infrastructure-tfplans-20260730/final-drift.tfplan
 ```
 
-Expected: formatting/validation pass and plan exits `0` with no changes. Exit `2` means drift and blocks delivery; exit `1` means error and blocks delivery.
+Expected: formatting and validation pass; the cluster and every other cloud
+resource are `no-op`; only `local_file.kubeconfig_file` has `["create"]`; and
+there are no delete, replacement, or storage actions. Do not apply the plan.
 
 - [ ] **Step 3: Run final production health and storage checks**
 
@@ -931,15 +952,16 @@ Run:
 
 ```bash
 git push -u origin feature/upgrade-terraform-provider-doks
-gh pr create --repo douz/blogs-infrastructure --base main --head feature/upgrade-terraform-provider-doks --title "Upgrade Terraform, DigitalOcean provider, and DOKS" --body "## Summary
+gh pr create --repo douz/blogs-infrastructure --base main --head feature/upgrade-terraform-provider-doks --title "Upgrade Terraform, providers, and DOKS" --body "## Summary
 - pin Terraform 1.15.8 locally, in configuration, and in HCP Terraform
 - update digitalocean/digitalocean to 2.95.0
+- update hashicorp/local to 2.9.0
 - upgrade DOKS through supported hops to 1.36.3-do.0
 - verify the MariaDB DigitalOcean volume remains unchanged
 
 ## Validation
 - terraform fmt and validate
-- final Terraform plan reports no changes
+- final Terraform plan reports all cloud resources as no-op and only the expected ephemeral local_file creation
 - Gitleaks reports no findings
 - cluster and nodes report 1.36.3-do.0
 - MariaDB PVC, PV, CSI volume, and attachment identities are unchanged

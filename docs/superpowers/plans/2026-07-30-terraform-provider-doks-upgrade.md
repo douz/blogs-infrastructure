@@ -92,13 +92,11 @@ Run:
 ls -l /usr/local/bin/terraform
 terraform version
 /Users/dbarahona/.terraform.versions/terraform_1.1.9 version
-tfswitch --match-version-requirement '~> 1.15.8' 1.15.8
 sed -n '1,10p' /Users/dbarahona/.terraform.versions/RECENT
 ```
 
 Expected: the symlink targets `terraform_1.15.8`, the selected runtime reports
-`1.15.8`, the retained runtime reports `1.1.9`, the requirement check exits
-`0`, and `RECENT` records `1.15.8`.
+`1.15.8`, the retained runtime reports `1.1.9`, and `RECENT` records `1.15.8`.
 
 ### Task 2: Pin Terraform and the DigitalOcean Provider
 

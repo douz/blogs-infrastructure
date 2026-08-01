@@ -1,0 +1,49 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+  namespace: databases
+  labels:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: blogs
+    app.kubernetes.io/part-of: blogs-infrastructure
+spec:
+  image: mariadb@sha256:0a2c136bd7f771adcefe93b8cc828dcb9a451d93b305492fcc463f882f96b97f
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 3306
+  rootPasswordSecretKeyRef:
+    name: mariadb-credentials
+    key: mariadb-root-password
+  service:
+    type: ClusterIP
+  storage:
+    size: 8Gi
+    storageClassName: do-block-storage
+    pvcRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+  updateStrategy:
+    type: OnDelete
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+      ephemeral-storage: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 4Gi
+  bootstrapFrom:
+    backupRef:
+      name: legacy-mariadb-initial
+    restoreJob:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+          ephemeral-storage: 1Gi
+        limits:
+          cpu: 500m
+          memory: 1Gi
+          ephemeral-storage: 10Gi

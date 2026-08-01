@@ -1,0 +1,2 @@
+wordpress:
+  dbhost: mariadb.databases.svc.cluster.local

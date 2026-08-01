@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mariadb-operator
+  labels:
+    app.kubernetes.io/part-of: mariadb-platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+  labels:
+    app.kubernetes.io/part-of: mariadb-platform

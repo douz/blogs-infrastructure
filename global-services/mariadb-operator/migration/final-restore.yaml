@@ -1,0 +1,23 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: legacy-mariadb-final
+  namespace: databases
+  labels:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: blogs
+    app.kubernetes.io/part-of: blogs-infrastructure
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: legacy-mariadb-final
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 10Gi

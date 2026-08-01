@@ -1,0 +1,54 @@
+crds:
+  enabled: false
+
+currentNamespaceOnly: false
+
+ha:
+  enabled: false
+
+metrics:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+    ephemeral-storage: 512Mi
+
+webhook:
+  enabled: true
+  ha:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+
+certController:
+  enabled: true
+  ha:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+
+config:
+  mariadbDefaultVersion: "10.11"
+  mariadbImage:
+    repository: mariadb
+    tag: 10.11.6

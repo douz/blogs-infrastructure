@@ -12,7 +12,7 @@ spec:
     name: mariadb
   schedule:
     cron: "0 10 * * *"
-    suspend: true
+    suspend: false
     immediate: false
   target: PreferReplica
   compression: gzip

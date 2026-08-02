@@ -37,13 +37,10 @@ kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/cloudfla
 helm --kubeconfig terraform/kubeconfig.yaml install external-dns bitnami/external-dns -f global-services/externaldns-values.yaml -n external-dns
 ```
 
-### Install MariaDB database for WordPress
+### Install MariaDB for WordPress
 
-```bash
-kubectl --kubeconfig terraform/kubeconfig.yaml create namespace mariadb
-kubectl --kubeconfig terraform/kubeconfig.yaml apply -f global-services/mariadb-sealedsecret.yaml
-helm --kubeconfig terraform/kubeconfig.yaml install mariadb bitnami/mariadb -f global-services/mariadb-values.yaml -n mariadb --set global.storageClass=do-block-storage
-```
+MariaDB is managed by MariaDB Community Operator. Follow the reviewed
+[operator deployment and backup instructions](global-services/mariadb-operator/README.md).
 
 ### Install Redis
 

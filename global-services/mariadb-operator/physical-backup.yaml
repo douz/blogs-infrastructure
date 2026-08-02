@@ -1,0 +1,47 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: mariadb-physical-daily
+  namespace: databases
+  labels:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: blogs
+    app.kubernetes.io/part-of: blogs-infrastructure
+spec:
+  mariaDbRef:
+    name: mariadb
+  schedule:
+    cron: "0 10 * * *"
+    suspend: false
+    immediate: false
+  target: PreferReplica
+  compression: gzip
+  maxRetention: 168h
+  timeout: 1h
+  storage:
+    s3:
+      bucket: blogs-infrastructure-mariadb-backups
+      prefix: physical/daily/
+      endpoint: 43b858bd5a5da0cd1b0651745e770fff.r2.cloudflarestorage.com
+      region: auto
+      accessKeyIdSecretKeyRef:
+        name: mariadb-r2-credentials
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: mariadb-r2-credentials
+        key: secret-access-key
+      tls:
+        enabled: true
+  stagingStorage:
+    volume:
+      emptyDir:
+        sizeLimit: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 10Gi

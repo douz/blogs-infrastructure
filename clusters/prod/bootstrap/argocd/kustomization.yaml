@@ -12,3 +12,4 @@ patches:
   - path: config-patches/argocd-rbac-cm.yaml
   - path: config-patches/workload-resources.yaml
   - path: config-patches/dex-disabled.yaml
+  - path: config-patches/applicationset-crd-ssa.yaml

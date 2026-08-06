@@ -227,10 +227,50 @@ validate_scope_boundaries() {
   fi
 
   if "${GREP_BIN}" -R -n -E \
-    'automated:|prune:[[:space:]]*true|selfHeal:[[:space:]]*true|Force=true|Replace=true|ServerSideApply=true' \
+    'automated:|prune:[[:space:]]*true|selfHeal:[[:space:]]*true|Force=true|Replace=true' \
     "${managed_paths[@]}"; then
     die "Unsafe automatic or destructive sync configuration detected"
   fi
+}
+
+validate_server_side_apply_exception() {
+  local exception_file="clusters/prod/bootstrap/argocd/config-patches/applicationset-crd-ssa.yaml"
+  local source_ssa_count
+  local rendered_targets
+  local -a managed_paths=(
+    clusters/prod/bootstrap
+    clusters/prod/control-plane
+    clusters/prod/platform
+  )
+
+  [[ -f "${exception_file}" ]] || die "Required ApplicationSet CRD SSA exception is missing"
+
+  "${YQ_BIN}" -e '
+    .apiVersion == "apiextensions.k8s.io/v1" and
+    .kind == "CustomResourceDefinition" and
+    .metadata.name == "applicationsets.argoproj.io" and
+    .metadata.annotations."argocd.argoproj.io/sync-options" == "ServerSideApply=true" and
+    ((keys | sort | join(",")) == "apiVersion,kind,metadata") and
+    ((.metadata | keys | sort | join(",")) == "annotations,name") and
+    ((.metadata.annotations | keys | join(",")) == "argocd.argoproj.io/sync-options")
+  ' "${exception_file}" >/dev/null || die "ApplicationSet CRD SSA patch has unexpected content"
+
+  source_ssa_count=$(
+    {
+      "${GREP_BIN}" -R -h -o -F 'ServerSideApply=true' "${managed_paths[@]}" || true
+    } | /usr/bin/awk 'END { print NR }'
+  )
+  [[ "${source_ssa_count}" == "1" ]] ||
+    die "Expected exactly one source SSA exception; found ${source_ssa_count}"
+
+  rendered_targets=$(
+    "${YQ_BIN}" eval-all -r -N '
+      select(.metadata.annotations."argocd.argoproj.io/sync-options" == "ServerSideApply=true") |
+      [.apiVersion, .kind, (.metadata.namespace // ""), .metadata.name] | @tsv
+    ' "${render_dir}/bootstrap.yaml"
+  )
+  [[ "${rendered_targets}" == $'apiextensions.k8s.io/v1\tCustomResourceDefinition\t\tapplicationsets.argoproj.io' ]] ||
+    die "SSA exception rendered on an unexpected resource: ${rendered_targets:-none}"
 }
 
 validate_repository_access() {
@@ -346,6 +386,7 @@ main() {
   validate_unique_identities
   validate_applicationset
   validate_scope_boundaries
+  validate_server_side_apply_exception
   validate_repository_access
   validate_secret_boundaries
   validate_preserved_sources

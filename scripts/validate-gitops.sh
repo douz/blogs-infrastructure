@@ -331,6 +331,17 @@ validate_repository_access() {
 validate_secret_boundaries() {
   local rendered_secret_violations
   local sealed_secret_violations
+  local account_sealed_secret="clusters/prod/bootstrap/argocd/local-accounts-sealedsecret.yaml"
+
+  "${YQ_BIN}" -e '
+    .apiVersion == "bitnami.com/v1alpha1" and
+    .kind == "SealedSecret" and
+    .metadata.name == "argocd-secret" and
+    .metadata.namespace == "argocd" and
+    .metadata.annotations."sealedsecrets.bitnami.com/patch" == null and
+    .spec.template.metadata.annotations."sealedsecrets.bitnami.com/patch" == "true"
+  ' "${account_sealed_secret}" >/dev/null ||
+    die "argocd-secret SealedSecret must place patch annotation on generated Secret template"
 
   rendered_secret_violations=$(
     "${YQ_BIN}" eval-all -r -N \

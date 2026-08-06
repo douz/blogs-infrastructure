@@ -236,6 +236,7 @@ validate_scope_boundaries() {
 validate_server_side_apply_exception() {
   local exception_file="clusters/prod/bootstrap/argocd/config-patches/applicationset-crd-ssa.yaml"
   local applicationset_crd_count
+  local exception_document_count
   local source_ssa_count
   local rendered_targets
   local -a managed_paths=(
@@ -245,6 +246,13 @@ validate_server_side_apply_exception() {
   )
 
   [[ -f "${exception_file}" ]] || die "Required ApplicationSet CRD SSA exception is missing"
+
+  exception_document_count=$(
+    "${YQ_BIN}" -r -N '"document"' "${exception_file}" |
+      /usr/bin/awk 'END { print NR }'
+  )
+  [[ "${exception_document_count}" == "1" ]] ||
+    die "ApplicationSet CRD SSA patch must contain exactly one YAML document; found ${exception_document_count}"
 
   "${YQ_BIN}" -e '
     .apiVersion == "apiextensions.k8s.io/v1" and

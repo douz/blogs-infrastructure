@@ -1,0 +1,17 @@
+# Bitnami legacy image repository retained for live-release parity.
+image:
+  repository: bitnamilegacy/external-dns
+
+provider: cloudflare
+
+cloudflare:
+  secretName: cloudflare-secret
+  email: douglas.barahona@me.com
+  proxied: true
+
+interval: "1m"
+policy: upsert-only
+domainFilters:
+  - douglasbarahona.me
+  - devandops.show
+  - brushbeauty.shop

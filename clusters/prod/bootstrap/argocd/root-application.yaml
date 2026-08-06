@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: platform-root
+    app.kubernetes.io/part-of: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/douz/blogs-infrastructure.git
+    targetRevision: main
+    path: clusters/prod/control-plane
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd

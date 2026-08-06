@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-helm-services
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: platform-helm-services
+    app.kubernetes.io/part-of: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - name: sealed-secrets
+            releaseName: sealed-secrets
+            namespace: kube-system
+            repoURL: https://bitnami.github.io/sealed-secrets
+            chart: sealed-secrets
+            chartVersion: 2.15.0
+            valueFile: clusters/prod/platform/sealed-secrets/values.yaml
+          - name: cert-manager
+            releaseName: cert-manager
+            namespace: cert-manager
+            repoURL: https://charts.jetstack.io
+            chart: cert-manager
+            chartVersion: v1.13.2
+            valueFile: clusters/prod/platform/cert-manager/values.yaml
+          - name: external-dns
+            releaseName: external-dns
+            namespace: external-dns
+            repoURL: https://charts.bitnami.com/bitnami
+            chart: external-dns
+            chartVersion: 9.0.3
+            valueFile: clusters/prod/platform/external-dns/values.yaml
+          - name: ingress-nginx
+            releaseName: ingress-nginx
+            namespace: ingress-nginx
+            repoURL: https://kubernetes.github.io/ingress-nginx
+            chart: ingress-nginx
+            chartVersion: 4.12.1
+            valueFile: clusters/prod/platform/ingress-nginx/values.yaml
+  template:
+    metadata:
+      name: "{{.name}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: "{{.name}}"
+        app.kubernetes.io/part-of: argocd
+    spec:
+      project: platform
+      sources:
+        - repoURL: "{{.repoURL}}"
+          chart: "{{.chart}}"
+          targetRevision: "{{.chartVersion}}"
+          helm:
+            releaseName: "{{.releaseName}}"
+            valueFiles:
+              - "$values/{{.valueFile}}"
+        - repoURL: https://github.com/douz/blogs-infrastructure.git
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{.namespace}}"
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - FailOnSharedResource=true
+  syncPolicy:
+    preserveResourcesOnDeletion: true

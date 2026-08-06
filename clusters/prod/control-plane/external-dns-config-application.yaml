@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: external-dns-config
+    app.kubernetes.io/part-of: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/douz/blogs-infrastructure.git
+    targetRevision: main
+    path: clusters/prod/platform/external-dns
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-dns
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - FailOnSharedResource=true

@@ -1,265 +1,89 @@
 # Production Cluster GitOps Configuration
 
-This directory contains the GitOps configuration for the production Kubernetes cluster managed by Flux v2.
+This directory contains the staged Argo CD GitOps foundation for the production
+Kubernetes cluster. The manifests are reviewable repository state only: Argo CD
+is not live until the separate bootstrap and service-adoption procedures are
+approved and completed.
 
-## Directory Structure
+## Management model
 
-```
-clusters/prod/
-├── flux-system/          # Flux bootstrap files (auto-generated)
-├── infra/                # Infrastructure components
-│   ├── helm-repos/       # Helm repository definitions
-│   ├── cert-manager/     # Certificate management
-│   ├── external-dns/     # Cloudflare DNS integration
-│   ├── issuers/          # Let's Encrypt issuers
-│   └── gateway/          # Gateway API with Cilium
-└── kustomization.yaml    # Root kustomization
-```
+Kustomize manages the pinned upstream Argo CD installation and standalone
+Kubernetes resources such as the Argo ingress, certificate, and ClusterIssuer.
+Argo CD continues to render the existing platform charts with Helm; the charts
+are not converted into handwritten Kubernetes manifests.
 
-## Domains Managed
-
-- `douglasbarahona.me`
-- `devandops.show`
-- `brushbeauty.shop`
-
-## Prerequisites
-
-1. **Kubernetes cluster** running on DigitalOcean
-2. **Cilium CNI** with Gateway API support enabled
-3. **GitHub personal access token** with repo permissions
-4. **Cloudflare API tokens** with DNS:Edit and Zone:Read permissions
-5. **Age encryption key** for SOPS secret management
-
-## Bootstrap Instructions
-
-### 1. Install Flux CLI
-
-```bash
-# macOS
-brew install fluxcd/tap/flux
-
-# Linux
-curl -s https://fluxcd.io/install.sh | sudo bash
-```
-
-### 2. Set up SOPS encryption
-
-```bash
-# Install age
-brew install age  # macOS
-# OR
-apt install age   # Ubuntu/Debian
-
-# Generate age key
-age-keygen -o age.key
-
-# Extract public key and update .sops.yaml
-grep "public key:" age.key
-
-# Store age.key securely and add to .gitignore
-echo "age.key" >> .gitignore
-```
-
-### 3. Create Cloudflare API tokens
-
-Create two API tokens at https://dash.cloudflare.com/profile/api-tokens:
+The Phase 1 Helm scope is deliberately limited to:
 
-**Token 1: external-dns**
-- Permissions: Zone > DNS > Edit, Zone > Zone > Read
-- Zone Resources: Include > All zones (or specific zones)
+- Sealed Secrets 2.15.0 in kube-system
+- cert-manager v1.13.2 in cert-manager
+- external-dns 9.0.3 in external-dns
+- ingress-nginx 4.12.1 in ingress-nginx
 
-**Token 2: cert-manager (DNS-01 challenges)**
-- Permissions: Zone > DNS > Edit, Zone > Zone > Read
-- Zone Resources: Include > All zones (or specific zones)
+The WordPress releases and namespaces are outside Argo CD. They retain their
+current lifecycle and must not be added to an Application, ApplicationSet,
+AppProject destination, or managed Kustomization.
 
-### 4. Encrypt secrets with SOPS
-
-```bash
-# Update the secrets with your actual Cloudflare API tokens
-# Edit these files and replace REPLACE_WITH_CLOUDFLARE_API_TOKEN
+## Directory structure
 
-# Encrypt external-dns secret
-sops --encrypt --in-place \
-  clusters/prod/infra/external-dns/secret-cloudflare-api-token-external-dns.yaml
+    clusters/prod/
+    ├── bootstrap/argocd/       # Pinned non-HA Argo CD installation
+    ├── control-plane/          # AppProject, Applications, and ApplicationSet
+    ├── platform/               # Values and standalone platform manifests
+    ├── flux-system/            # Preserved legacy Flux bootstrap
+    └── infra/                  # Preserved legacy Flux infrastructure sources
 
-# Encrypt cert-manager secret
-sops --encrypt --in-place \
-  clusters/prod/infra/issuers/secret-cloudflare-api-token-dns01.yaml
-```
+The legacy Flux paths remain tracked during rollout. They are removed only
+through a separate cleanup pull request after Argo CD and each adopted service
+have remained healthy for at least seven days.
 
-### 5. Configure Cloudflare Transform Rules
+## Initial reconciliation posture
 
-For each domain, create a Transform Rule:
+Every Application starts in manual-sync mode. Automated sync, pruning,
+self-healing, Force, Replace, and global server-side apply are intentionally
+absent. ApplicationSet deletion preserves deployed resources.
 
-1. Go to: **Rules > Transform Rules > Modify Request Header**
-2. Create rule: **"Add Origin Verify Header"**
-3. When incoming requests match:
-   ```
-   (http.host eq "douglasbarahona.me" or http.host ends_with ".douglasbarahona.me") or
-   (http.host eq "devandops.show" or http.host ends_with ".devandops.show") or
-   (http.host eq "brushbeauty.shop" or http.host ends_with ".brushbeauty.shop")
-   ```
-4. Then: Set static
-   - Header name: `X-Origin-Verify`
-   - Value: Generate with: `openssl rand -hex 32`
-5. Update `cilium-http-route-filter-origin-verify.yaml` with the same token
+Live adoption is sequential:
 
-### 6. Bootstrap Flux
-
-```bash
-# Export GitHub token
-export GITHUB_TOKEN=<your-token>
+1. Bootstrap and verify Argo CD.
+2. Adopt Sealed Secrets.
+3. Adopt cert-manager and its existing HTTP-01 ClusterIssuer.
+4. Adopt external-dns and its existing encrypted Cloudflare credential.
+5. Adopt ingress-nginx without replacing its Service.
+6. Observe the completed rollout for seven healthy days.
+7. Remove obsolete Flux configuration through a separate reviewed change.
 
-# Bootstrap Flux
-flux bootstrap github \
-  --owner=douz \
-  --repository=blogs-infrastructure \
-  --branch=main \
-  --path=clusters/prod \
-  --personal \
-  --components-extra=image-reflector-controller,image-automation-controller
+No repository merge performs those live steps by itself.
 
-# Configure SOPS decryption
-kubectl create secret generic sops-age \
-  --namespace=flux-system \
-  --from-file=age.agekey=age.key
+## Secrets
 
-# Update flux-system kustomization to use SOPS
-flux create kustomization flux-system \
-  --source=flux-system \
-  --path=clusters/prod \
-  --prune=true \
-  --interval=10m \
-  --decryption-provider=sops \
-  --decryption-secret=sops-age
-```
+Git contains only SealedSecret ciphertext and nonsecret metadata. Never commit a
+plaintext Kubernetes Secret, decoded value, sealing private key, password, or
+repository private key.
 
-### 7. Verify deployment
+To add or rotate a secret:
 
-```bash
-# Check Flux status
-flux check
+1. Use the production Sealed Secrets controller and strict name/namespace scope.
+2. Pipe the client-side generated Secret directly into kubeseal.
+3. Write only the resulting SealedSecret manifest to the repository.
+4. Inspect encrypted key names and run the repository validation and secret
+   scan before committing.
 
-# Watch reconciliation
-flux get kustomizations --watch
+Do not create an intermediate plaintext manifest in the repository.
 
-# Check all HelmReleases
-flux get helmreleases -A
+## Argo endpoint
 
-# Verify cert-manager
-kubectl get clusterissuer
-kubectl get certificate -A
+argocd.douglasbarahona.me is configured for ingress-nginx TLS termination and
+is intended to be protected by Cloudflare Zero Trust. Cloudflare DNS, proxying,
+and Access policy resources remain externally managed and are not created by
+these manifests.
 
-# Verify Gateway
-kubectl get gateway -n ingress
-kubectl get certificate -n ingress
+## Validation
 
-# Check DNS records
-kubectl logs -n external-dns -l app.kubernetes.io/name=external-dns
-```
+Run the local validation gate from the repository root:
 
-## Maintenance
+    scripts/validate-gitops.sh
 
-### Update Helm releases
-
-```bash
-# Check for updates
-flux get helmreleases -A
-
-# Suspend reconciliation (optional)
-flux suspend helmrelease cert-manager -n flux-system
-
-# Update chart version in the HelmRelease YAML
-# Then resume
-flux resume helmrelease cert-manager -n flux-system
-```
-
-### Rotate secrets
-
-```bash
-# Edit encrypted secret
-sops clusters/prod/infra/external-dns/secret-cloudflare-api-token-external-dns.yaml
-
-# Commit and push
-git add clusters/prod/infra/external-dns/secret-cloudflare-api-token-external-dns.yaml
-git commit -m "chore: rotate external-dns Cloudflare token"
-git push
-
-# Force reconciliation
-flux reconcile kustomization external-dns
-```
-
-### Debug issues
-
-```bash
-# Check Flux logs
-flux logs --all-namespaces --follow
-
-# Describe HelmRelease
-kubectl describe helmrelease cert-manager -n flux-system
-
-# Check events
-kubectl get events -n flux-system --sort-by='.lastTimestamp'
-
-# Suspend and resume
-flux suspend kustomization <name>
-flux resume kustomization <name>
-```
-
-## Security Notes
-
-- ✅ All secrets are encrypted with SOPS
-- ✅ Cloudflare proxy enabled (orange cloud)
-- ✅ Origin verification via X-Origin-Verify header
-- ✅ TLS certificates auto-renewed via Let's Encrypt
-- ✅ DNS-01 challenges for wildcard certificates
-- ⚠️ Never commit unencrypted secrets to Git
-- ⚠️ Store age.key securely (not in repo)
-
-## Troubleshooting
-
-### Certificates not issuing
-
-```bash
-# Check cert-manager logs
-kubectl logs -n cert-manager -l app=cert-manager
-
-# Describe certificate
-kubectl describe certificate -n ingress
-
-# Check challenges
-kubectl get challenges -A
-```
-
-### DNS records not created
-
-```bash
-# Check external-dns logs
-kubectl logs -n external-dns -l app.kubernetes.io/name=external-dns
-
-# Verify Cloudflare token permissions
-# Check domain filters in HelmRelease
-```
-
-### Gateway not working
-
-```bash
-# Check Gateway status
-kubectl describe gateway public-gateway -n ingress
-
-# Verify Cilium is running with Gateway API
-cilium status
-
-# Check HTTPRoutes
-kubectl get httproute -A
-```
-
-## Next Steps
-
-After the infrastructure is deployed:
-
-1. Deploy WordPress applications
-2. Create HTTPRoutes for each site
-3. Set up monitoring (Prometheus, Grafana)
-4. Configure backups
-5. Add additional security policies
+The script uses private temporary Helm homes and renders, checks Helm 3/4
+parity, validates schemas, rejects duplicate resource identities, enforces the
+WordPress and sync-policy boundaries, verifies ciphertext-only secret handling,
+and confirms the legacy Flux sources remain tracked.

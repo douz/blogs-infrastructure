@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: platform
+    app.kubernetes.io/part-of: argocd
+spec:
+  description: Production stateless platform services
+  sourceRepos:
+    - https://github.com/douz/blogs-infrastructure.git
+    - https://bitnami.github.io/sealed-secrets
+    - https://charts.jetstack.io
+    - https://charts.bitnami.com/bitnami
+    - https://kubernetes.github.io/ingress-nginx
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
+    - server: https://kubernetes.default.svc
+      namespace: cert-manager
+    - server: https://kubernetes.default.svc
+      namespace: external-dns
+    - server: https://kubernetes.default.svc
+      namespace: ingress-nginx
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: argocd
+    - group: ""
+      kind: Namespace
+      name: kube-system
+    - group: ""
+      kind: Namespace
+      name: cert-manager
+    - group: ""
+      kind: Namespace
+      name: external-dns
+    - group: ""
+      kind: Namespace
+      name: ingress-nginx
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    - group: networking.k8s.io
+      kind: IngressClass
+    - group: cert-manager.io
+      kind: ClusterIssuer

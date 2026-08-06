@@ -1,0 +1,18 @@
+title = "blogs-infrastructure Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Allow only validated SealedSecret ciphertext fields"
+condition = "AND"
+regexTarget = "line"
+regexes = [
+  '''(cloudflare_api_token|redis-password|accounts\.(break-glass|douglas)\.(password|passwordMtime)):\s+Ag[A-Za-z0-9+/=]+''',
+]
+paths = [
+  '''^(global-services/cloudflare-sealedsecret\.yaml|global-services/redis-sealedsecret\.yaml|clusters/prod/platform/external-dns/cloudflare-sealedsecret\.yaml|clusters/prod/bootstrap/argocd/local-accounts-sealedsecret\.yaml)$''',
+]

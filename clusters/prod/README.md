@@ -39,8 +39,18 @@ have remained healthy for at least seven days.
 ## Initial reconciliation posture
 
 Every Application starts in manual-sync mode. Automated sync, pruning,
-self-healing, Force, Replace, and global server-side apply are intentionally
-absent. ApplicationSet deletion preserves deployed resources.
+self-healing, Force, Replace, and application-wide or global server-side apply
+are intentionally absent. ApplicationSet deletion preserves deployed resources.
+
+`CustomResourceDefinition/applicationsets.argoproj.io` is the sole
+server-side-apply exception because its OpenAPI schema exceeds Kubernetes'
+client-side last-applied annotation limit. Initial bootstrap applies that CRD
+separately with `kubectl apply --server-side --force-conflicts`; all remaining
+bootstrap resources continue to use ordinary client-side apply. During later
+Argo self-management, only that CRD carries
+`argocd.argoproj.io/sync-options: ServerSideApply=true`. Do not add this sync
+option to an Application, ApplicationSet, AppProject, another resource, or a
+global policy.
 
 Live adoption is sequential:
 
@@ -85,5 +95,6 @@ Run the local validation gate from the repository root:
 
 The script uses private temporary Helm homes and renders, checks Helm 3/4
 parity, validates schemas, rejects duplicate resource identities, enforces the
-WordPress and sync-policy boundaries, verifies ciphertext-only secret handling,
+WordPress and sync-policy boundaries, requires exactly one server-side-apply
+annotation on the ApplicationSet CRD, verifies ciphertext-only secret handling,
 and confirms the legacy Flux sources remain tracked.

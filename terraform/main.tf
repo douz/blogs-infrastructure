@@ -18,6 +18,6 @@ resource "digitalocean_kubernetes_cluster" "wp-blogs" {
   node_pool {
     name       = "wp-blogs-nodes"
     size       = "s-1vcpu-2gb"
-    node_count = 3
+    node_count = 4
   }
 }

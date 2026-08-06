@@ -235,6 +235,7 @@ validate_scope_boundaries() {
 
 validate_server_side_apply_exception() {
   local exception_file="clusters/prod/bootstrap/argocd/config-patches/applicationset-crd-ssa.yaml"
+  local applicationset_crd_count
   local source_ssa_count
   local rendered_targets
   local -a managed_paths=(
@@ -262,6 +263,18 @@ validate_server_side_apply_exception() {
   )
   [[ "${source_ssa_count}" == "1" ]] ||
     die "Expected exactly one source SSA exception; found ${source_ssa_count}"
+
+  applicationset_crd_count=$(
+    "${YQ_BIN}" eval-all -r -N '
+      select(
+        .kind == "CustomResourceDefinition" and
+        .metadata.name == "applicationsets.argoproj.io"
+      ) |
+      .metadata.name
+    ' "${render_dir}/bootstrap.yaml" | /usr/bin/awk 'END { print NR }'
+  )
+  [[ "${applicationset_crd_count}" == "1" ]] ||
+    die "Expected exactly one rendered ApplicationSet CRD; found ${applicationset_crd_count}"
 
   rendered_targets=$(
     "${YQ_BIN}" eval-all -r -N '

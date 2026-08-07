@@ -71,6 +71,11 @@ kind: Deployment
 metadata:
   name: argocd-repo-server
 spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     spec:
       containers:

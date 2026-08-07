@@ -213,6 +213,27 @@ validate_applicationset() {
     clusters/prod/control-plane/platform-applicationset.yaml >/dev/null
 }
 
+validate_repo_server_safety() {
+  local cmd_params_file="clusters/prod/bootstrap/argocd/config-patches/argocd-cmd-params-cm.yaml"
+  local workload_resources_file="clusters/prod/bootstrap/argocd/config-patches/workload-resources.yaml"
+  local repo_server_memory_limit
+
+  "${YQ_BIN}" -e '.data."reposerver.parallelism.limit" == "1"' \
+    "${cmd_params_file}" >/dev/null ||
+    die "Argo CD repo-server parallelism must be limited to one manifest generation"
+
+  repo_server_memory_limit=$(
+    "${YQ_BIN}" eval-all -r '
+      select(.kind == "Deployment" and .metadata.name == "argocd-repo-server") |
+      .spec.template.spec.containers[] |
+      select(.name == "argocd-repo-server") |
+      .resources.limits.memory
+    ' "${workload_resources_file}"
+  )
+  [[ "${repo_server_memory_limit}" == "768Mi" ]] ||
+    die "Argo CD repo-server memory limit must be 768Mi"
+}
+
 validate_scope_boundaries() {
   local -a managed_paths=(
     clusters/prod/bootstrap
@@ -428,6 +449,8 @@ main() {
 
   check_tools
   cd "${REPO_ROOT}"
+
+  validate_repo_server_safety
 
   render_dir=$(mktemp -d "${TMPDIR:-/tmp}/blogs-gitops-validation.XXXXXX")
   mkdir -p "${render_dir}/helm3" "${render_dir}/helm4"

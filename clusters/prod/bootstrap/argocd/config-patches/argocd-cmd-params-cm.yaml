@@ -3,4 +3,5 @@ kind: ConfigMap
 metadata:
   name: argocd-cmd-params-cm
 data:
+  reposerver.parallelism.limit: "1"
   server.insecure: "true"

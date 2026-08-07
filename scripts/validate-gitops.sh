@@ -330,8 +330,24 @@ validate_repository_access() {
 
 validate_secret_boundaries() {
   local rendered_secret_violations
+  local rendered_secret_patch_targets
   local sealed_secret_violations
   local account_sealed_secret="clusters/prod/bootstrap/argocd/local-accounts-sealedsecret.yaml"
+  local account_secret_patch="clusters/prod/bootstrap/argocd/config-patches/argocd-secret-patch.yaml"
+
+  [[ -f "${account_secret_patch}" ]] ||
+    die "Required argocd-secret Secret patch is missing"
+
+  "${YQ_BIN}" -e '
+    .apiVersion == "v1" and
+    .kind == "Secret" and
+    .metadata.name == "argocd-secret" and
+    .metadata.annotations."sealedsecrets.bitnami.com/patch" == "true" and
+    ((keys | sort | join(",")) == "apiVersion,kind,metadata") and
+    ((.metadata | keys | sort | join(",")) == "annotations,name") and
+    ((.metadata.annotations | keys | join(",")) == "sealedsecrets.bitnami.com/patch")
+  ' "${account_secret_patch}" >/dev/null ||
+    die "argocd-secret Secret patch has unexpected content"
 
   "${YQ_BIN}" -e '
     .apiVersion == "bitnami.com/v1alpha1" and
@@ -342,6 +358,15 @@ validate_secret_boundaries() {
     .spec.template.metadata.annotations."sealedsecrets.bitnami.com/patch" == "true"
   ' "${account_sealed_secret}" >/dev/null ||
     die "argocd-secret SealedSecret must place patch annotation on generated Secret template"
+
+  rendered_secret_patch_targets=$(
+    "${YQ_BIN}" eval-all -r -N '
+      select(.metadata.annotations."sealedsecrets.bitnami.com/patch" == "true") |
+      [.apiVersion, .kind, (.metadata.namespace // ""), .metadata.name] | @tsv
+    ' "${render_dir}/bootstrap.yaml"
+  )
+  [[ "${rendered_secret_patch_targets}" == $'v1\tSecret\targocd\targocd-secret' ]] ||
+    die "Patch annotation rendered on an unexpected Secret target: ${rendered_secret_patch_targets:-none}"
 
   rendered_secret_violations=$(
     "${YQ_BIN}" eval-all -r -N \

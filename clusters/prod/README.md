@@ -70,6 +70,11 @@ Git contains only SealedSecret ciphertext and nonsecret metadata. Never commit a
 plaintext Kubernetes Secret, decoded value, sealing private key, password, or
 repository private key.
 
+Argo CD `passwordMtime` inputs must be canonical 20-byte RFC3339 UTC values
+such as `YYYY-MM-DDTHH:MM:SSZ`, with no trailing carriage return or line feed.
+Generate or normalize the private input without printing it, and verify its
+byte length before piping the client-side Secret directly into `kubeseal`.
+
 To add or rotate a secret:
 
 1. Use the production Sealed Secrets controller and strict name/namespace scope.

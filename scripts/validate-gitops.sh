@@ -232,6 +232,14 @@ validate_repo_server_safety() {
   )
   [[ "${repo_server_memory_limit}" == "768Mi" ]] ||
     die "Argo CD repo-server memory limit must be 768Mi"
+
+  "${YQ_BIN}" eval-all -e '
+    select(.kind == "Deployment" and .metadata.name == "argocd-repo-server") |
+    .spec.strategy.type == "RollingUpdate" and
+    .spec.strategy.rollingUpdate.maxSurge == 0 and
+    .spec.strategy.rollingUpdate.maxUnavailable == 1
+  ' "${workload_resources_file}" >/dev/null ||
+    die "Argo CD repo-server rollout must avoid surge and allow one unavailable replica"
 }
 
 validate_scope_boundaries() {

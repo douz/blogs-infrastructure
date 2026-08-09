@@ -15,9 +15,16 @@ resource "digitalocean_kubernetes_cluster" "wp-blogs" {
   region  = "nyc1"
   version = "1.36.3-do.0"
 
+  cluster_autoscaler_configuration {
+    scale_down_utilization_threshold = 0.65
+    scale_down_unneeded_time         = "10m0s"
+  }
+
   node_pool {
     name       = "wp-blogs-nodes"
     size       = "s-1vcpu-2gb"
-    node_count = 4
+    auto_scale = true
+    min_nodes  = 4
+    max_nodes  = 5
   }
 }
